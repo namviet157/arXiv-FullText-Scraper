@@ -1,25 +1,50 @@
-# arXiv Paper Crawler and Reference Extractor
+# arXiv Full-Text Scraper
 
-This project provides a parallel processing system for downloading arXiv papers and extracting their references from Semantic Scholar. It downloads paper sources (LaTeX files), extracts metadata, and fetches citation information.
+A Python-based tool for downloading arXiv papers (LaTeX sources) and extracting their references from Semantic Scholar. The project processes papers in parallel, downloads all versions, extracts metadata, and fetches citation information.
 
 ## Features
 
 - **Parallel Processing**: Process multiple papers simultaneously with configurable parallelism
 - **Multi-version Support**: Downloads all versions of each arXiv paper
-- **Reference Extraction**: Fetches references from Semantic Scholar API
+- **Reference Extraction**: Fetches references from Semantic Scholar API (only arXiv papers)
 - **Resource Monitoring**: Tracks RAM and disk usage during processing
 - **Automatic Cleanup**: Removes non-LaTeX files, keeping only `.tex` and `.bib` files
 - **Progress Tracking**: Real-time statistics and progress reports
+- **Resume Support**: Automatically skips already processed papers
 
-## Environment Setup
+## Project Structure
 
-### Python Version
+```
+arXiv-FullText-Scraper/
+├── main.ipynb              # Main Jupyter notebook (run this)
+├── requirements.txt        # Python dependencies
+├── README.md               # This file
+├── .gitignore             # Git ignore rules
+└── ArXivPapers/           # Output directory (created after running)
+    └── YYMM-NNNNN/        # Paper folders (format: YYMM-NNNNN)
+        ├── metadata.json  # Paper metadata
+        ├── references.json # References (only arXiv papers)
+        └── tex/           # LaTeX source files
+            ├── YYMM-NNNNNv1/  # Version 1 folder
+            │   ├── *.tex
+            │   ├── *.bib
+            │   └── <subfolders>/  # Preserves original structure
+            ├── YYMM-NNNNNv2/  # Version 2 folder (if exists)
+            └── ...
+```
+
+**Note**: The notebook generates three Python scripts (`arxiv_crawler.py`, `reference_extractor.py`, `main.py`) when executed. These are created using `%%writefile` and can be run standalone if needed.
+
+## Installation
+
+### Prerequisites
 
 - **Python 3.7+** (Python 3.8 or higher recommended)
+- Jupyter Notebook or JupyterLab (for running the notebook)
 
-### Required Python Packages
+### Install Dependencies
 
-Install the required packages using `requirements.txt` (recommended):
+Install the required packages using `requirements.txt`:
 
 ```bash
 pip install -r requirements.txt
@@ -31,76 +56,48 @@ Or install packages individually:
 pip install arxiv requests psutil memory_profiler
 ```
 
-Or using conda:
+**Dependencies:**
+- `arxiv>=2.1.0` - arXiv API client
+- `requests>=2.31.0` - HTTP library for Semantic Scholar API
+- `psutil>=5.9.0` - System and process utilities for resource monitoring
+- `memory_profiler>=0.61.0` - Memory profiling for IPython extension
 
-```bash
-conda install -c conda-forge arxiv requests psutil memory_profiler
-```
-
-Or run cell install in the Jupyter notebook:
-```bash
-
-!pip install arxiv requests psutil memory_profiler
-```
-
-## Project Structure
-
-After running the notebook, you'll have the following files:
-
-```
-ArXivPapers/
-  ├── src/
-  │    ├── ArXivPapers.ipynb
-  │    └── requirements.txt
-  ├── ArXivPapers/        # Nested output root (contains paper folders)
-  │    ├── YYMM-NNNNN/     # Paper folders (format: YYMM-NNNNN)
-  │    │    ├── metadata.json
-  │    │    ├── references.json
-  │    │    └── tex/
-  │    │        └── YYMM-NNNNNvN/   # Version folder (eg 2304-14607v1)
-  │    │            ├── *.tex
-  │    │            ├── *.bib
-  │    │            └── <subfolders>/
-  │    │                ├── *.tex
-  │    │                ├── *.bib
-  │    │                └── ... (recursively)
-  │    └── ... (other output folders for each paper)
-  ├── README.md
-  └── Report.tex
-```
-
-## Running the Code
+## Usage
 
 ### Step 1: Open the Notebook
 
-Open the Jupyter notebook (`main.ipynb`) in Google Colab, Kaggle, Jupyter Lab, Jupyter Notebook, or VS Code.
+Open `main.ipynb` in:
+- Jupyter Notebook
+- JupyterLab
+- VS Code (with Jupyter extension)
+- Google Colab
+- Kaggle Notebooks
 
 ### Step 2: Configure Parameters
 
-Edit the configuration cell in the notebook to set your processing parameters:
+Edit the configuration in the `main()` function (Cell 3) or modify the variables directly:
 
 ```python
-# === CONFIGS ===
 START_MONTH = "2023-04"      # Start month in format "YYYY-MM"
 START_ID = 14607             # Starting arXiv ID number
 END_MONTH = "2023-05"        # End month in format "YYYY-MM"
 END_ID = 14596               # Ending arXiv ID number
 MAX_PARALLELS = 2            # Number of parallel threads
-SAVE_DIR = "./ArXivPapers"      # Output directory
+SAVE_DIR = "./ArXivPapers"   # Output directory
 ```
 
 #### Parameter Descriptions
 
-- **START_MONTH** / **END_MONTH**: Date range in `"YYYY-MM"` format (e.g., `"2023-04"` for April 2023)
-  - For single month: Set both to the same month
-  - For multi-month: Set different months (e.g., `"2023-04"` to `"2023-05"`)
+- **START_MONTH** / **END_MONTH**: Date range in `"YYYY-MM"` format
+  - Single month: Set both to the same month (e.g., `"2023-04"` to `"2023-04"`)
+  - Multi-month: Set different months (e.g., `"2023-04"` to `"2023-05"`)
 
 - **START_ID** / **END_ID**: arXiv ID number range (5-digit format)
-  - Example: `14607` corresponds to `2305.14607` (if month is April 2023)
-  - The system will automatically find the last valid ID in the start month if processing multiple months
+  - Example: `14607` corresponds to `2304.14607` (if month is April 2023)
+  - The system automatically finds the last valid ID in the start month if processing multiple months
 
-- **MAX_PARALLELS**: Number of parallel threads (default: 2)
-  - **Recommended values**: 2-3 threads
+- **MAX_PARALLELS**: Number of parallel threads
+  - **Recommended**: 2-3 threads
   - Higher values = faster processing but more resource usage
   - Consider your network bandwidth and system resources
 
@@ -108,82 +105,135 @@ SAVE_DIR = "./ArXivPapers"      # Output directory
 
 ### Step 3: Run the Notebook
 
-Run all cells in the notebook sequentially, or run individual cells as needed. The notebook contains all the necessary code for crawling arXiv papers and extracting references.
+Run all cells sequentially. The notebook will:
+1. Install dependencies (Cell 0)
+2. Generate `arxiv_crawler.py` (Cell 1)
+3. Generate `reference_extractor.py` (Cell 2)
+4. Generate `main.py` (Cell 3)
+5. Run the main processing (Cell 4 - optional, for memory profiling)
+6. Display resource usage (Cell 5 - optional)
 
-#### Generated Python scripts
+### Step 4: Monitor Progress
 
-Running the notebook also writes three helper Python scripts into the current working directory (these are created by notebook cells using `%%writefile`):
+The script provides real-time progress updates:
+- Progress reports every 10 papers
+- Resource monitoring (RAM and disk usage)
+- Final statistics (success rates and failure counts)
+- Status indicators per paper
 
-- `arxiv_crawler.py`: Downloads paper sources (all versions), extracts archives, and cleans extracted files (keeps `.tex` and `.bib`).
-- `reference_extractor.py`: Queries Semantic Scholar for references and converts/saves them into `references.json` for each paper.
-- `main.py`: Orchestrates parallel processing, monitoring, and reporting; it imports and uses the two modules above and can be run standalone (`python main.py`).
+## Output Format
 
-Note: Rerunning the notebook will overwrite these files (because `%%writefile` replaces the target file). They are provided so you can run or modify the pipeline outside the notebook if desired.
+### Directory Structure
 
-### Saving outputs on Google Colab
+Each processed paper creates a folder:
 
-If you run the notebook on Google Colab and want to persist the generated output folder (`./ArXivPapers`) to your Google Drive (so it survives Colab disconnections), mount your Drive and copy the folder after the pipeline finishes. The notebook includes a helper cell that mounts Drive and copies the tree to `/content/drive/MyDrive/ArXivPapers`.
-
-Quick manual commands you can run in Colab (after `drive.mount('/content/drive')`):
-
-```bash
-
-# Create a zip and copy (faster for many small files):
-!zip -r ArXivPapers.zip /content/ArXivPapers
-!cp ArXivPapers.zip /content/drive/MyDrive/
+```
+ArXivPapers/
+└── 2304-14609/              # Paper folder (format: YYMM-NNNNN)
+    ├── metadata.json        # Paper metadata
+    ├── references.json      # References (only arXiv papers)
+    └── tex/                 # LaTeX source files
+        ├── 2304-14609v1/    # Version 1
+        │   ├── *.tex
+        │   ├── *.bib
+        │   └── <subfolders>/  # Preserves original structure
+        ├── 2304-14609v2/    # Version 2 (if exists)
+        └── 2304-14609v3/    # Version 3 (if exists)
 ```
 
-Notes:
-- The helper cell in the notebook will attempt to merge/copy the output into `MyDrive/ArXivPapers`. Existing files with the same names may be overwritten.
-- Copying many small files can be slow on Colab; zipping then copying is often faster.
-- Make sure you have sufficient space in your Google Drive before copying.
+### metadata.json Structure
 
-## Scraping Rate and Rate Limiting
+```json
+{
+    "arxiv_id": "2304-14609",
+    "paper_title": "On the temperature dependence...",
+    "abstract": "We report neutron-scattering measurements...",
+    "authors": [
+        "Sha Jin",
+        "Xue Fan",
+        ...
+    ],
+    "submission_date": "2023-04-28",
+    "revised_dates": [
+        "2024-02-07",
+        "2024-03-24"
+    ],
+    "publication_venue": "Scientific Reports volume 14...",
+    "latest_version": 3,
+    "categories": [
+        "cond-mat.soft",
+        "cond-mat.dis-nn"
+    ],
+    "pdf_url": "https://arxiv.org/pdf/2304.14609v3"
+}
+```
+
+### references.json Structure
+
+Contains only references that are arXiv papers (filtered by Semantic Scholar):
+
+```json
+{
+    "2305-02524": {
+        "paper_title": "A fresh look at the vibrational...",
+        "authors": [
+            "Hai-Long Xu",
+            "Matteo Baggioli",
+            "T. Keyes"
+        ],
+        "submission_date": "2023-05-04",
+        "semantic_scholar_id": "4b17685939a939cb0e6b56e9786951e4d5c9fdb3"
+    },
+    ...
+}
+```
+
+## Rate Limiting
 
 ### arXiv Rate Limiting
 
-- **Delay between downloads**: 0.5 seconds (configurable in the notebook)
-- **Rate limit**: arXiv recommends being respectful with requests
-- The code includes a 0.5-second delay between version downloads to avoid overwhelming the server
+- **Delay between downloads**: 0.3 seconds (configurable in `arxiv_crawler.py`)
+- The code includes delays between version downloads to avoid overwhelming the server
+- arXiv recommends being respectful with requests
 
 ### Semantic Scholar Rate Limiting
 
-- **Retry delay**: 3 seconds (configurable in the notebook)
-- **Rate limits**: 
-  - Without API key: The API enforces limits of 1 request per second and 100 requests per 5-minute window for unauthenticated
-use 
+- **Retry delay**: 3 seconds (configurable in `reference_extractor.py`)
+- **Rate limits**:
+  - Without API key: 1 request per second, 100 requests per 5-minute window
   - With API key: Higher limits (varies by tier)
-  - You can sign up for a free API key at https://www.semanticscholar.org/product/api
-  - My personal API key which we obtained from Semantic Scholar at 2:11 PM on November 14, 2025.
-    - *cf6G5yldwF4UEzswq3WKX72B6uffqNv17LQDo8Oi*
-    - *a8okwqTLp18Ku1vBXJ1Jb6eRoDKpmAem41VjtFCY*
-- The code automatically handles rate limit errors (HTTP 429) and retries with exponential backoff
+  - Get a free API key at: https://www.semanticscholar.org/product/api
+
+**To use API key**: Set environment variable:
+```python
+import os
+os.environ["SEMANTIC_SCHOLAR_API_KEY"] = "your_api_key_here"
+```
+
+The code automatically handles rate limit errors (HTTP 429) and retries with exponential backoff.
 
 ### Adjusting Scraping Rate
 
-To modify the delay between arXiv downloads, edit the corresponding cell in the notebook:
-
+**arXiv delay** (in `arxiv_crawler.py`):
 ```python
-time.sleep(0.5)  # Change this value (in seconds)
+time.sleep(0.3)  # Change this value (in seconds)
 ```
 
-To modify Semantic Scholar retry delay, edit the corresponding cell in the notebook:
-
+**Semantic Scholar delay** (in `reference_extractor.py`):
 ```python
 def get_paper_references(arxiv_id, delay=3):  # Change default delay
 ```
 
 ## Parallelism Configuration
 
-### Choosing the Right Parallelism Level
+### Recommended Settings
 
 - **Low (1 thread)**: 
   - Suitable for slow networks
   - Lower resource usage
   - More reliable, less likely to hit rate limits
 
-- **Medium (2-3 threads)**:
-  - **Recommended for most use cases**
+- **Medium (2-3 threads)**: ⭐ **Recommended**
   - Good balance between speed and reliability
   - Default: 2 threads
 
@@ -192,120 +242,17 @@ def get_paper_references(arxiv_id, delay=3):  # Change default delay
   - Requires good network bandwidth
   - May need to increase delays between requests
 
-### Example Configurations
+## Performance Metrics
 
-**Conservative (slow but safe):**
-```python
-MAX_PARALLELS = 1
-# In notebook: time.sleep(1.0) for arXiv downloads
-# In notebook: delay=5 for Semantic Scholar
-```
+Based on test runs processing **1500 papers** (2305.8001 to 2305.9500):
 
-**Balanced (recommended):**
-```python
-MAX_PARALLELS = 2
-# Default delays (0.5s for arXiv, 3s for Semantic Scholar)
-```
-
-**Aggressive (fast but risky):**
-```python
-MAX_PARALLELS = 4
-# In notebook: time.sleep(0.3) for arXiv downloads
-# In notebook: delay=2 for Semantic Scholar
-```
-
-## Output Format
-
-Each processed paper creates a folder structure:
-
-```
-ArXivPapers/                 # Nested output root (contains paper folders)
-└── 2305-04793/           # Paper folder (format: YYMM-NNNNN)
-    ├── metadata.json     # Paper metadata
-    ├── references.json   # References (only arXiv papers)
-    └── tex/              # LaTeX source files
-        ├── 2305-04793v1/ # Version folder (eg. 2304-14607v1)
-        │   ├── *.tex
-        │   ├── *.bib
-        │   └── <subfolders>/
-        │       ├── *.tex
-        │       ├── *.bib
-        │       └── ... (recursively follows original TeX source structure)
-        └── 2305-04793v2/ # Version 2 (if exists)
-            └── ...
-
-```
-
-### metadata.json Structure
-
-```json
-{
-    "arxiv_id": "2305-02001",
-    "paper_title": "Surreal substructures",
-    "authors": [
-        "Vincent Bagayoko",
-        "Joris van der Hoeven"
-    ],
-    "submission_date": "2023-05-03",
-    "revised_dates": [],
-    "publication_venue": null,
-    "latest_version": 1,
-    "categories": [
-        "math.LO"
-    ]
-}
-```
-
-### references.json Structure
-
-```json
-{
-    "2402-15800": {
-        "paper_title": "Sign sequences of log-atomic numbers",
-        "authors": [
-            "Vincent Bagayoko"
-        ],
-        "submission_date": "2024-02-24",
-        "semantic_scholar_id": "2d9e48266edf82c418850d3096e2db2059941625"
-    },
-    ...
-}
-```
-
-## Progress Monitoring
-
-The script provides real-time progress updates:
-
-- **Progress reports** every 10 papers
-- **Resource monitoring**: Tracks RAM and disk usage
-- **Final statistics**: Success rates and failure counts
-- **Status indicators**:
-  - `✓✓`: Both crawler and references succeeded
-  - `✓X`: Crawler succeeded, references failed
-  - `XX`: Both failed
-
-### Measured Performance Metrics
-
-Based on actual test runs on **Google Colab** with default configuration (2 parallel threads) for processing papers 
-
-**2305.8001 to 2305.9500**:
-Run at 18:50 on 15/11/2025 to 21:07 on 15/11/2025
-
-- **Number of papers processed**: 1500
-- **Total Run Time**: 2 hours 16 minutes 57 seconds
+- **Total Run Time**: ~2 hours 17 minutes
 - **Average processing time**: ~5.48 seconds per paper
 - **Success rate**: 100% (both phases combined)
-- **Reference extraction failure rate**: 0%
-- **No reference**: 39
-- **Peak RAM usage through *memory_profiler***: 122.82 MiB
-- **RAM increment *memory_profiler***: 11.63 MiB
-- **Peak RAM usage through *psutil***: 8161.51 MB
-- **Average RAM usage through *psutil***: ~69.1 MB
-- **Peak disk usager**: 2432.3 MB ~ 2.4 GB
-- **Disk usage**: 2422.17 MB ~ 2.4 GB
-- **Disk usage per paper**: ~1.5-2.4 MB (after cleanup)
+- **Peak RAM usage**: ~122 MB (memory_profiler) / ~8.2 GB (psutil)
+- **Disk usage**: ~2.4 GB (~1.5-2.4 MB per paper)
 
-> **Note**: These metrics were measured on Google Colab's free tier. Performance may vary on different platforms or configurations.
+> **Note**: Performance may vary based on network speed, system resources, and API rate limits.
 
 ## Troubleshooting
 
@@ -317,23 +264,28 @@ Run at 18:50 on 15/11/2025 to 21:07 on 15/11/2025
    - Use Semantic Scholar API key
 
 2. **Disk Space Issues**
-   - Monitor disk usage in the progress reports
+   - Monitor disk usage in progress reports
    - Clean up failed paper folders if needed
    - Ensure sufficient disk space (papers can be large)
 
 3. **Memory Issues**
    - Reduce `MAX_PARALLELS`
    - Process papers in smaller batches
-   - Monitor RAM usage in the reports
+   - Monitor RAM usage in reports
 
 4. **"file" command not found (Windows)**
    - The code will still work but with reduced file type detection
+   - Uses fallback method based on file extensions
    - Consider using WSL or Git Bash for better compatibility
 
 5. **Semantic Scholar 404 Errors**
    - Some papers may not be in Semantic Scholar database
    - This is expected and will be logged
    - Empty `references.json` files will be created for these papers
+
+6. **Import Errors**
+   - Make sure all dependencies are installed: `pip install -r requirements.txt`
+   - Restart the kernel after installing packages
 
 ## Example Usage
 
@@ -353,12 +305,30 @@ This processes papers `2305.02001` through `2305.02010`.
 
 ```python
 START_MONTH = "2023-04"
-START_ID = 14998
+START_ID = 14607
 END_MONTH = "2023-05"
-END_ID = 6
+END_ID = 14596
 MAX_PARALLELS = 2
 ```
 
 This processes:
-- Papers from April 2023 starting at ID 14998 until the last valid ID
-- Papers from June 2023 from ID 1 to 100
+- Papers from April 2023 starting at ID 14607 until the last valid ID
+- Papers from May 2023 from ID 1 to 14596
+
+## Saving Outputs on Google Colab
+
+If running on Google Colab and want to persist outputs to Google Drive:
+
+1. Mount Google Drive (uncomment and run Cell 7)
+2. Copy the output folder:
+
+```bash
+# Option 1: Copy directly
+!cp -r /content/ArXivPapers /content/drive/MyDrive/
+
+# Option 2: Create zip first (faster for many files)
+!zip -r ArXivPapers.zip /content/ArXivPapers
+!cp ArXivPapers.zip /content/drive/MyDrive/
+```
+
+**Note**: Existing files with the same names may be overwritten.
